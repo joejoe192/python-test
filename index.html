@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python Live Coding Exam: Clean and Load Olist Order Items</title>
+<style>
+  :root {
+    --ink: #1c2430;
+    --muted: #5d6878;
+    --line: #dfe4ea;
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --accent: #2f6fdf;
+    --ok: #1f8a4c;
+    --warn: #c77a00;
+    --danger: #c8322b;
+    --code-bg: #f1f3f6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.55;
+    font-size: 16px;
+  }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.92em;
+  }
+
+  /* ---------- Timer bar ---------- */
+  .timerbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--ink);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    transition: background .3s;
+  }
+  .timerbar.warn { background: var(--warn); }
+  .timerbar.danger { background: var(--danger); }
+  .timerbar.over { background: var(--danger); }
+  .timerbar .label { font-size: 14px; opacity: .85; }
+  .timerbar .clock {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+  }
+  .timerbar .right { text-align: right; font-size: 14px; opacity: .85; }
+  .progress { height: 4px; background: rgba(255,255,255,.2); position: absolute; left: 0; right: 0; bottom: 0; }
+  .progress > div { height: 100%; background: #fff; width: 0; transition: width 1s linear; }
+
+  /* ---------- Layout ---------- */
+  main { max-width: 900px; margin: 0 auto; padding: 28px 20px 80px; }
+  h1 { font-size: 28px; line-height: 1.25; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  h2 { font-size: 20px; margin: 0 0 12px; }
+  h3 { font-size: 16px; margin: 20px 0 8px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin: 0 0 20px;
+  }
+  .q-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .pill {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: #e8effc;
+    border-radius: 999px;
+    padding: 2px 10px;
+    white-space: nowrap;
+  }
+  ol, ul { padding-left: 24px; margin: 6px 0; }
+  li { margin: 4px 0; }
+  ol.alpha { list-style: lower-alpha; }
+
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 14.5px; }
+  th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #eef1f5; font-weight: 600; }
+  td.empty { color: var(--muted); font-style: italic; }
+  .table-wrap { overflow-x: auto; }
+
+  .flow {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14.5px;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  pre.output {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: #1f2633;
+    color: #e6edf3;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+  .callout {
+    border-left: 4px solid var(--warn);
+    background: #fff7e8;
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0 0;
+  }
+  .check {
+    border-left: 4px solid var(--ok);
+    background: #eef8f2;
+    padding: 10px 14px 10px 14px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 16px;
+  }
+  .check h3 { margin-top: 0; color: var(--ok); }
+
+  /* ---------- Waiting / time's up screens ---------- */
+  .gate {
+    max-width: 640px;
+    margin: 60px auto;
+    text-align: center;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 40px 28px;
+  }
+  .gate .big {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 54px;
+    font-weight: 700;
+    margin: 10px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .gate button {
+    font-size: 17px;
+    padding: 12px 26px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    margin-top: 12px;
+  }
+  .timesup {
+    display: none;
+    background: var(--danger);
+    color: #fff;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 0 0 20px;
+    font-size: 18px;
+  }
+  .timesup strong { font-size: 24px; display: block; margin-bottom: 4px; }
+
+  .codecard pre {
+    margin: 12px 0 0;
+    background: #1f2633;
+    color: #e6edf3;
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.5;
+    overflow: auto;
+    max-height: 560px;
+    tab-size: 4;
+  }
+  .codecard pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+  .codecard .tok-c { color: #8b9bb0; }
+  .codecard .tok-todo { color: #ffcc66; font-weight: 700; }
+  .codecard .tok-s { color: #a5d6a7; }
+  .codecard .tok-k { color: #82aaff; }
+  .btnrow { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    font-size: 14px;
+    padding: 7px 14px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn:hover { filter: brightness(0.96); }
+
+  .namecard input {
+    display: block; width: 100%; max-width: 420px; margin: 8px 0 6px;
+    font-size: 16px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 7px;
+  }
+  .hint { color: var(--muted); font-size: 14.5px; margin: 6px 0 0; }
+  .submitbox {
+    margin-top: 18px; padding: 16px; border: 1px dashed #b9c3d0; border-radius: 10px; background: #fafbfc;
+  }
+  .submitbox h3 { margin: 0 0 8px; }
+  .submitbox label { display: block; font-size: 14px; font-weight: 600; margin: 10px 0 4px; }
+  .submitbox textarea {
+    width: 100%; min-height: 120px; resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px;
+    padding: 10px; border: 1px solid var(--line); border-radius: 7px; tab-size: 4;
+  }
+  .submitbox textarea.out { min-height: 80px; }
+  .submitrow { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+  .status { font-size: 14px; color: var(--muted); }
+  .status.ok { color: var(--ok); font-weight: 600; }
+  .status.err { color: var(--danger); font-weight: 600; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!--
+  =====================================================================
+  HOW TO SET THE EXAM TIME  (for the instructor)
+  =====================================================================
+  The timer runs on the real clock, so every student sees the same time
+  left, and refreshing the page does NOT reset it.
+
+  Easiest: put the start time in the link you share in Zoom chat:
+      https://<you>.github.io/<repo>/?start=19:30
+      https://<you>.github.io/<repo>/?start=19:30&min=30
+      https://<you>.github.io/<repo>/?start=2026-11-17T19:30+07:00
+
+  Or set it below in CONFIG and push.
+
+  SUBMISSIONS: set CONFIG.SUBMIT_URL below to your Apps Script web app
+  URL (see Code.gs). Answers go to your Google Sheet.
+
+  If no start time is given, each student gets a "Start" button and
+  their own 30 minutes begins when they click it (saved in the browser,
+  so a refresh does not reset it).
+  =====================================================================
+-->
+<script>
+  const CONFIG = {
+    START: null,          // e.g. "2026-11-17T19:30:00+07:00", or null
+    DURATION_MIN: 30,     // exam length in minutes
+    WARN_MIN: 5,          // bar turns amber with this many minutes left
+    DANGER_MIN: 1,        // bar turns red with this many minutes left
+    SUBMIT_URL: "",       // Google Apps Script web app URL (ends in /exec)
+    GRACE_SEC: 120        // submit buttons stay open this long after time is up
+  };
+</script>
+
+<div class="timerbar" id="timerbar">
+  <div>
+    <div class="label" id="timerLabel">Time left</div>
+    <div class="clock" id="clock">--:--</div>
+  </div>
+  <div class="right" id="timerRight"></div>
+  <div class="progress"><div id="progressFill"></div></div>
+</div>
+
+<!-- Waiting screen (before the exam starts) -->
+<div class="gate hidden" id="waitGate">
+  <h2 id="waitTitle">The exam has not started yet</h2>
+  <p class="sub" id="waitSub"></p>
+  <div class="big" id="waitClock">--:--</div>
+  <button id="startBtn" class="hidden">Start my 30 minutes</button>
+</div>
+
+<main id="exam" class="hidden">
+
+  <div class="timesup" id="timesUp">
+    <strong>Time's up. Stop typing.</strong>
+    <span id="timesUpMsg">Submit what you have now.</span>
+  </div>
+
+  <h1>Python Live Coding Exam: Clean and Load Olist Order Items</h1>
+  <p class="sub">5 questions · <span id="durText">30</span> minutes · file: <code>scripts/exam.py</code></p>
+
+  <section class="card namecard">
+    <label for="studentName"><strong>Your name</strong></label>
+    <input id="studentName" type="text" placeholder="First and last name" autocomplete="name">
+    <p class="hint">After each question, paste your code and output into the box at the end of that question and click <strong>Submit</strong>. You can submit again to replace an answer; the last one counts. At the end, upload your whole <code>exam.py</code>.</p>
+  </section>
+
+  <section class="card">
+    <h2>Before you start</h2>
+    <ol>
+      <li>Open <code>scripts/exam.py</code>. The database connection and the <code>items</code> table are already written. Do not change them.</li>
+      <li>Each question has a function with <strong>TODO</strong> comments inside. Replace the TODOs and the word <code>pass</code> with your code.</li>
+      <li>After each function there are <strong>TODO</strong> lines for calling it. You write the call and the print yourself.</li>
+      <li>Do the questions <strong>in order</strong>. Each question uses the result of the one before it.</li>
+      <li>Run the file after every question: <code>python scripts/exam.py</code>. Check your output against <strong>Check your result</strong>.</li>
+    </ol>
+
+    <h3>The data: items (10 rows)</h3>
+    <p>Each row is one item in an order. An item is identified by <strong><code>order_id</code> + <code>order_item_id</code> together</strong>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>order_id</th><th>order_item_id</th><th>seller_id</th><th>price</th><th>freight_value</th></tr></thead>
+        <tbody>
+          <tr><td>o1</td><td>1</td><td>s1</td><td>12.34</td><td>5.00</td></tr>
+          <tr><td>o1</td><td>2</td><td>s1</td><td>12.34</td><td>5.00</td></tr>
+          <tr><td>o2</td><td>1</td><td>s2</td><td>1000.00</td><td>20.00</td></tr>
+          <tr><td>o3</td><td>1</td><td>s2</td><td>25.00</td><td>30.00</td></tr>
+          <tr><td>o4</td><td>1</td><td>s2</td><td>40.00</td><td>40.00</td></tr>
+          <tr><td>o5</td><td>1</td><td>s3</td><td>59.94</td><td>15.10</td></tr>
+          <tr><td>o5</td><td>1</td><td>s3</td><td>59.94</td><td>15.10</td></tr>
+          <tr><td>o6</td><td>1</td><td class="empty">(empty)</td><td>80.00</td><td>10.00</td></tr>
+          <tr><td>o7</td><td>1</td><td>s3</td><td class="empty">(empty)</td><td>12.00</td></tr>
+          <tr><td>o8</td><td>1</td><td>s1</td><td>7.77</td><td>8.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>How the questions connect</h3>
+<div class="flow">items (10 rows)
+│ Q1 drop_nulls        → clean_df (8 rows)
+│ Q2 handle_duplicates → deduped (7 rows)
+│ Q3 count_suspicious  → number of suspicious items
+│ Q4 build_rejected    → rejected_df (3 rows)
+│ Q5 load_items        → two tables in Postgres</div>
+
+    <div class="callout">
+      <strong>Important:</strong> Give each result its <strong>own name</strong> (<code>clean_df</code>, <code>deduped</code>, <code>rejected_df</code>). Do not reuse a name for a different step: Q4 needs <code>clean_df</code> from Q1, so it must still have 8 rows.
+    </div>
+  </section>
+
+
+  <!-- ===================== Starter file ===================== -->
+  <section class="card codecard" id="starter">
+    <div class="q-head">
+      <h2>Starter file: <code>scripts/exam.py</code></h2>
+      <div class="btnrow">
+        <button class="btn" id="copyBtn">Copy code</button>
+        <button class="btn primary" id="downloadBtn">Download exam.py</button>
+      </div>
+    </div>
+    <p>Save this as <code>scripts/exam.py</code> in your project folder (next to your <code>.env</code> one level up), then fill in every <strong>TODO</strong>.</p>
+    <pre><code id="skeletonView"></code></pre>
+  </section>
+
+  <!-- ===================== Q1 ===================== -->
+  <section class="card" id="q1">
+    <div class="q-head"><h2>Q1. Drop null values</h2><span class="pill">5 minutes</span></div>
+    <p>The items table has some rows with missing data. A row without a <code>seller_id</code> can't be linked to a seller, and a row without a <code>price</code> can't be used in revenue totals.</p>
+
+    <h3>Input</h3>
+    <p><code>items</code>: the 10-row table above.</p>
+
+    <h3>Write the function <code>drop_nulls(df)</code></h3>
+    <ol>
+      <li>Remove every row where <code>seller_id</code> is null <strong>or</strong> <code>price</code> is null.</li>
+      <li>Keep rows that have nulls in other columns. Only these two columns decide.</li>
+      <li>Print the cleaned table.</li>
+      <li>Count how many rows were dropped: the number of rows before minus the number of rows after.</li>
+      <li>Return <strong>two values</strong>: the cleaned DataFrame and the number of rows dropped.</li>
+    </ol>
+
+    <h3>Then, below the function</h3>
+    <ol>
+      <li>Call <code>drop_nulls</code> with <code>items</code>.</li>
+      <li>Store the two results in variables named <code>clean_df</code> and <code>dropped</code>.</li>
+      <li>Print how many rows were dropped.</li>
+    </ol>
+
+    <div class="check">
+      <h3>Check your result</h3>
+      <ul>
+        <li><code>clean_df</code> has <strong>8 rows</strong>.</li>
+        <li><strong>2 rows</strong> were dropped: o6 (no <code>seller_id</code>) and o7 (no <code>price</code>).</li>
+        <li>o5 still appears twice. That is correct: it has no nulls. Duplicates are Q2's job.</li>
+        <li><code>items</code> still has 10 rows. Your function must not change it.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== Q2 ===================== -->
+  <section class="card" id="q2">
+    <div class="q-head"><h2>Q2. Find and remove duplicates</h2><span class="pill">5 minutes</span></div>
+    <p>The source system sometimes sends the same item twice. An item is identified by <strong><code>order_id</code> + <code>order_item_id</code> together</strong>. One order can have several items (item 1, item 2...), so the same <code>order_id</code> alone does <strong>not</strong> mean a duplicate.</p>
+
+    <h3>Input</h3>
+    <p><code>clean_df</code>: the 8-row table from Q1, with the null rows already removed.</p>
+
+    <h3>Write the function <code>handle_duplicates(df)</code></h3>
+    <p>The variable <code>key = ["order_id", "order_item_id"]</code> is already written for you.</p>
+    <ol>
+      <li>Find the rows whose key appears more than once, <strong>every copy</strong>, not only the extra ones.</li>
+      <li>Print the heading <code>Duplicate rows:</code> and then those rows.</li>
+      <li>Remove the duplicates, keeping the <strong>first</strong> row of each.</li>
+      <li>Print the cleaned table.</li>
+      <li>Return <strong>two values</strong>: the cleaned DataFrame and the number of rows removed.</li>
+    </ol>
+
+    <h3>Then, below the function</h3>
+    <ol>
+      <li>Call <code>handle_duplicates</code> with <code>clean_df</code>.</li>
+      <li>Store the two results in variables named <code>deduped</code> and <code>removed</code>.</li>
+      <li>Print how many rows were removed.</li>
+    </ol>
+
+    <div class="check">
+      <h3>Check your result</h3>
+      <ul>
+        <li>The duplicate rows printed are the <strong>two</strong> o5 rows.</li>
+        <li><code>deduped</code> has <strong>7 rows</strong>; <strong>1 row</strong> was removed.</li>
+        <li>o1 item 1 and o1 item 2 are both still there. They are different items, not duplicates.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== Q3 ===================== -->
+  <section class="card" id="q3">
+    <div class="q-head"><h2>Q3. Find suspicious items</h2><span class="pill">5 minutes</span></div>
+    <p>An item is <strong>suspicious</strong> if its <code>freight_value</code> is <strong>greater than</strong> its <code>price</code> (shipping costs more than the product), or its <code>price</code> is <strong>greater than</strong> 1000. Both are strict comparisons: a value <strong>exactly equal</strong> is not suspicious.</p>
+
+    <h3>Input</h3>
+    <p><code>deduped</code>: the 7-row table from Q2.</p>
+
+    <h3>Write the function <code>count_suspicious(df)</code></h3>
+    <p>The variable <code>count = 0</code> is already written for you.</p>
+    <ol>
+      <li>Use a <strong>for loop</strong> to go through the rows of <code>df</code> one at a time.</li>
+      <li>For each row, use <strong>if / elif / else</strong>:
+        <ol class="alpha">
+          <li><strong>if</strong> <code>freight_value &gt; price</code>: print <code>&lt;order_id&gt; item &lt;order_item_id&gt;: SUSPICIOUS - freight is higher than price</code> and add 1 to <code>count</code></li>
+          <li><strong>elif</strong> <code>price &gt; 1000</code>: print <code>&lt;order_id&gt; item &lt;order_item_id&gt;: SUSPICIOUS - price is over 1000</code> and add 1 to <code>count</code></li>
+          <li><strong>else</strong>: print <code>&lt;order_id&gt; item &lt;order_item_id&gt;: ok</code></li>
+        </ol>
+      </li>
+      <li>After the loop has finished, return <code>count</code>.</li>
+    </ol>
+
+    <h3>Then, below the function</h3>
+    <ol>
+      <li>Call <code>count_suspicious</code> with <code>deduped</code> and store the result as <code>suspicious</code>.</li>
+      <li>Print the number of suspicious items.</li>
+    </ol>
+
+    <div class="check">
+      <h3>Check your result</h3>
+<pre class="output">o1 item 1: ok
+o1 item 2: ok
+o2 item 1: ok
+o3 item 1: SUSPICIOUS - freight is higher than price
+o4 item 1: ok
+o5 item 1: ok
+o8 item 1: SUSPICIOUS - freight is higher than price</pre>
+      <ul>
+        <li>The number of suspicious items is <strong>2</strong>.</li>
+        <li>o2 (price <strong>exactly</strong> 1000) and o4 (freight <strong>equal to</strong> price) must print <code>ok</code>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== Q4 ===================== -->
+  <section class="card" id="q4">
+    <div class="q-head"><h2>Q4. Build the rejected rows</h2><span class="pill">5 minutes</span></div>
+    <p>Q1 and Q2 removed 3 rows, but only counted them. In a real pipeline, bad rows are not thrown away: they are kept with a <strong>reason</strong>, so someone can fix the source.</p>
+
+    <h3>Input</h3>
+    <p><code>raw_df</code> = <code>items</code> (10 rows) and <code>no_null_df</code> = <code>clean_df</code> (8 rows from Q1).</p>
+
+    <h3>Write the function <code>build_rejected(raw_df, no_null_df)</code></h3>
+    <p>The variable <code>key = ["order_id", "order_item_id"]</code> is already written for you. Build three groups of rows and give each a new column <code>reject_reason</code>:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Group</th><th>Which rows</th><th>reject_reason</th><th>Look in</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>seller_id</code> is null</td><td><code>missing seller_id</code></td><td><code>raw_df</code></td></tr>
+          <tr><td>2</td><td><code>seller_id</code> is <strong>not</strong> null but <code>price</code> is null</td><td><code>missing price</code></td><td><code>raw_df</code></td></tr>
+          <tr><td>3</td><td>Duplicate key: the <strong>extra</strong> copies only, not the first</td><td><code>duplicate</code></td><td><code>no_null_df</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ol>
+      <li>Build group 1 and add the column <code>reject_reason</code> with the value <code>missing seller_id</code>.</li>
+      <li>Build group 2 and add <code>reject_reason = missing price</code>.</li>
+      <li>Build group 3 and add <code>reject_reason = duplicate</code>.</li>
+      <li>Combine the three groups into <strong>one</strong> DataFrame with a new index 0, 1, 2.</li>
+      <li>Print it and return it.</li>
+    </ol>
+
+    <h3>Then, below the function</h3>
+    <ol>
+      <li>Call <code>build_rejected</code> with <code>items</code> and <code>clean_df</code>, and store the result as <code>rejected_df</code>.</li>
+      <li>Print the number of rejected rows, the number of good rows (<code>deduped</code>), and the total of both.</li>
+    </ol>
+
+    <div class="check">
+      <h3>Check your result</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>order_id</th><th>order_item_id</th><th>seller_id</th><th>price</th><th>freight_value</th><th>reject_reason</th></tr></thead>
+          <tbody>
+            <tr><td>o6</td><td>1</td><td class="empty">(empty)</td><td>80.00</td><td>10.0</td><td>missing seller_id</td></tr>
+            <tr><td>o7</td><td>1</td><td>s3</td><td class="empty">(empty)</td><td>12.0</td><td>missing price</td></tr>
+            <tr><td>o5</td><td>1</td><td>s3</td><td>59.94</td><td>15.1</td><td>duplicate</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li><strong>3</strong> rejected + <strong>7</strong> good = <strong>10</strong>, the original number of rows. Nothing was lost.</li>
+        <li>Only <strong>one</strong> o5 row is rejected. The first o5 is a good item.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== Q5 ===================== -->
+  <section class="card" id="q5">
+    <div class="q-head"><h2>Q5. Create two tables and load</h2><span class="pill">8 minutes</span></div>
+    <p>Save the good items and the rejected rows in Postgres. The <code>staging</code> schema already exists. The two tables below <strong>do not exist yet</strong>, so your code must create them.</p>
+
+    <h3>Input</h3>
+    <p><code>good_df</code> = <code>deduped</code> (7 rows), <code>rejected_df</code> from Q4 (3 rows), and <code>engine</code> (already created at the top of the file).</p>
+
+    <h3>Table 1: <code>staging.order_items_clean</code> (the good items)</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Rule</th></tr></thead>
+        <tbody>
+          <tr><td>order_id</td><td>TEXT</td><td>not null</td></tr>
+          <tr><td>order_item_id</td><td>INTEGER</td><td>not null</td></tr>
+          <tr><td>seller_id</td><td>TEXT</td><td>not null</td></tr>
+          <tr><td>price</td><td>NUMERIC(10,2)</td><td>not null</td></tr>
+          <tr><td>freight_value</td><td>NUMERIC(10,2)</td><td></td></tr>
+          <tr><td>loaded_at</td><td>TIMESTAMP</td><td>not null, default now()</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Primary key: <strong>(order_id, order_item_id)</strong></p>
+
+    <h3>Table 2: <code>staging.order_items_rejected</code> (the bad rows)</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Rule</th></tr></thead>
+        <tbody>
+          <tr><td>order_id</td><td>TEXT</td><td></td></tr>
+          <tr><td>order_item_id</td><td>INTEGER</td><td></td></tr>
+          <tr><td>seller_id</td><td>TEXT</td><td></td></tr>
+          <tr><td>price</td><td>NUMERIC(10,2)</td><td></td></tr>
+          <tr><td>freight_value</td><td>NUMERIC(10,2)</td><td></td></tr>
+          <tr><td>reject_reason</td><td>TEXT</td><td>not null</td></tr>
+          <tr><td>loaded_at</td><td>TIMESTAMP</td><td>not null, default now()</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>No primary key: rejected rows may contain duplicates.</p>
+
+    <h3>Write the function <code>load_items(good_df, rejected_df, engine)</code></h3>
+    <ol>
+      <li>Write the SQL in <code>create_sql</code> that creates <strong>both</strong> tables, but <strong>only if they do not exist</strong>. Put <code>staging.</code> in front of each table name.</li>
+      <li>Open <strong>one</strong> transaction with the engine. Inside it:
+        <ol class="alpha">
+          <li>run <code>create_sql</code></li>
+          <li>delete all rows from both tables, so a second run does not add the rows again</li>
+          <li>insert <code>good_df</code> into <code>staging.order_items_clean</code> and <code>rejected_df</code> into <code>staging.order_items_rejected</code>; add the rows to the tables you created (do not replace the tables) and do not write the DataFrame index</li>
+          <li>count the rows in each table</li>
+        </ol>
+      </li>
+      <li>After the transaction, print <code>Loaded X good items and Y rejected items</code> and return the two counts.</li>
+    </ol>
+
+    <h3>Then, in <code>main()</code></h3>
+    <ol>
+      <li>Call <code>load_items</code> with <code>deduped</code>, <code>rejected_df</code> and <code>engine</code>.</li>
+    </ol>
+
+    <div class="check">
+      <h3>Check your result</h3>
+      <ul>
+        <li>The output is <code>Loaded 7 good items and 3 rejected items</code>.</li>
+        <li><strong>Run the file a second time.</strong> The output must be the same, not 14 and 6.</li>
+        <li>In DBeaver, <code>SELECT * FROM staging.order_items_clean;</code> shows 7 rows, and <code>loaded_at</code> is filled in automatically.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== Final file ===================== -->
+  <section class="card" id="final">
+    <div class="q-head"><h2>Final: upload your whole <code>exam.py</code></h2><span class="pill">last step</span></div>
+    <p>When you finish (or when time is up), choose your <code>scripts/exam.py</code> and click <strong>Submit file</strong>.</p>
+    <div class="submitbox">
+      <input type="file" id="finalFile" accept=".py,text/x-python,text/plain">
+      <div class="submitrow">
+        <button class="btn primary submitbtn" id="finalBtn">Submit file</button>
+        <span class="status" id="finalStatus"></span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  const params = new URLSearchParams(location.search);
+  const durationMin = Number(params.get("min")) || CONFIG.DURATION_MIN;
+  const durationMs = durationMin * 60 * 1000;
+  const STORAGE_KEY = "olist-exam-start:" + location.pathname;
+
+  document.getElementById("durText").textContent = durationMin;
+  document.getElementById("startBtn").textContent = "Start my " + durationMin + " minutes";
+
+  // Accepts "19:30" (today, local time) or a full ISO date-time.
+  function parseStart(value) {
+    if (!value) return null;
+    const hm = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+    if (hm) {
+      const d = new Date();
+      d.setHours(Number(hm[1]), Number(hm[2]), 0, 0);
+      return d.getTime();
+    }
+    const t = Date.parse(value);
+    return isNaN(t) ? null : t;
+  }
+
+  function readSaved() {
+    try { return Number(localStorage.getItem(STORAGE_KEY)) || null; } catch (e) { return null; }
+  }
+  function save(t) {
+    try { localStorage.setItem(STORAGE_KEY, String(t)); } catch (e) {}
+  }
+
+  let startMs = parseStart(params.get("start")) || parseStart(CONFIG.START);
+  const selfStart = !startMs;
+  if (selfStart) startMs = readSaved();
+
+  const el = {
+    bar: document.getElementById("timerbar"),
+    label: document.getElementById("timerLabel"),
+    clock: document.getElementById("clock"),
+    right: document.getElementById("timerRight"),
+    fill: document.getElementById("progressFill"),
+    exam: document.getElementById("exam"),
+    gate: document.getElementById("waitGate"),
+    waitTitle: document.getElementById("waitTitle"),
+    waitSub: document.getElementById("waitSub"),
+    waitClock: document.getElementById("waitClock"),
+    startBtn: document.getElementById("startBtn"),
+    timesUp: document.getElementById("timesUp")
+  };
+
+  function fmt(ms) {
+    const total = Math.max(0, Math.ceil(ms / 1000));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const mm = String(m).padStart(2, "0");
+    const ss = String(s).padStart(2, "0");
+    return h > 0 ? h + ":" + mm + ":" + ss : mm + ":" + ss;
+  }
+  function clockTime(t) {
+    return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  let beeped = false;
+  function beep() {
+    if (beeped) return;
+    beeped = true;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.35, 0.7].forEach(function (offset) {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.frequency.value = 880;
+        o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.25, ctx.currentTime + offset);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.3);
+        o.start(ctx.currentTime + offset);
+        o.stop(ctx.currentTime + offset + 0.3);
+      });
+    } catch (e) {}
+  }
+
+  el.startBtn.addEventListener("click", function () {
+    startMs = Date.now();
+    save(startMs);
+    tick();
+  });
+
+  function tick() {
+    const now = Date.now();
+
+    // Not started yet
+    if (!startMs || now < startMs) {
+      el.exam.classList.add("hidden");
+      el.gate.classList.remove("hidden");
+      el.bar.className = "timerbar";
+      el.fill.style.width = "0%";
+      if (!startMs) {
+        el.waitTitle.textContent = "Ready when you are";
+        el.waitSub.textContent = "You will have " + durationMin + " minutes. The timer starts when you click the button and keeps running if you refresh.";
+        el.waitClock.textContent = fmt(durationMs);
+        el.startBtn.classList.remove("hidden");
+        el.label.textContent = "Exam length";
+        el.clock.textContent = fmt(durationMs);
+        el.right.textContent = "Not started";
+      } else {
+        el.waitTitle.textContent = "The exam has not started yet";
+        el.waitSub.textContent = "Starts at " + clockTime(startMs) + ". The questions will appear automatically.";
+        el.waitClock.textContent = fmt(startMs - now);
+        el.startBtn.classList.add("hidden");
+        el.label.textContent = "Starts in";
+        el.clock.textContent = fmt(startMs - now);
+        el.right.textContent = "Start " + clockTime(startMs) + " · End " + clockTime(startMs + durationMs);
+      }
+      return;
+    }
+
+    // Started
+    el.gate.classList.add("hidden");
+    el.exam.classList.remove("hidden");
+
+    const endMs = startMs + durationMs;
+    window.__examEnd = endMs;
+    const left = endMs - now;
+    const pct = Math.min(100, ((now - startMs) / durationMs) * 100);
+    el.fill.style.width = pct + "%";
+    el.right.textContent = "Start " + clockTime(startMs) + " · End " + clockTime(endMs);
+
+    if (left > 0) {
+      el.label.textContent = "Time left";
+      el.clock.textContent = fmt(left);
+      el.timesUp.style.display = "none";
+      let cls = "timerbar";
+      if (left <= CONFIG.DANGER_MIN * 60000) cls += " danger";
+      else if (left <= CONFIG.WARN_MIN * 60000) cls += " warn";
+      el.bar.className = cls;
+    } else {
+      el.label.textContent = "Time's up";
+      el.clock.textContent = "00:00";
+      el.bar.className = "timerbar over";
+      if (el.timesUp.style.display !== "block") {
+        el.timesUp.style.display = "block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        beep();
+      }
+    }
+  }
+
+  tick();
+  setInterval(tick, 250);
+})();
+</script>
+<script type="text/plain" id="skeleton">"""
+Python live coding exam - Olist order_items                         (about 30 minutes)
+
+Q1  Drop null values                       5 min
+Q2  Find and remove duplicates             5 min
+Q3  Find suspicious items (for + if/else)  5 min
+Q4  Build the rejected rows                5 min
+Q5  Create two tables and load             8 min
+
+Fill in every TODO, including the calls after each function and main().
+The DB connection and the data are given. Read the question sheet for each step.
+Run from the project root:  python scripts/exam.py
+"""
+import os
+from pathlib import Path
+from urllib.parse import quote_plus
+
+import pandas as pd
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+
+# ---------- DB connection (from .env) - given ----------
+BASE_DIR = Path(__file__).resolve().parent.parent   # scripts/ -> project root
+load_dotenv(BASE_DIR / ".env")
+
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_NAME = os.getenv("DB_NAME")
+DB_URL = (f"postgresql+psycopg2://{DB_USER}:{quote_plus(DB_PASSWORD or '')}"
+          f"@{DB_HOST}:{DB_PORT}/{DB_NAME}")
+
+engine = create_engine(DB_URL)
+
+# ---------- Raw data - given ----------
+items = pd.DataFrame({
+    "order_id":      ["o1", "o1", "o2", "o3", "o4", "o5", "o5", "o6", "o7", "o8"],
+    "order_item_id": [1,    2,    1,    1,    1,    1,    1,    1,    1,    1],
+    "seller_id":     ["s1", "s1", "s2", "s2", "s2", "s3", "s3", None, "s3", "s1"],
+    "price":         [12.34, 12.34, 1000.00, 25.00, 40.00, 59.94, 59.94, 80.00, None, 7.77],
+    "freight_value": [5.00,  5.00,  20.00,   30.00, 40.00, 15.10, 15.10, 10.00, 12.00, 8.00],
+})
+
+
+# =====================================================================
+# Q1. Drop null values (5 min)
+# =====================================================================
+def drop_nulls(df):
+    # TODO: remove rows where seller_id OR price is null
+    # TODO: print the cleaned table
+    # TODO: return (cleaned DataFrame, number of rows dropped)
+    pass
+
+
+# TODO: call drop_nulls with items -> store the results as clean_df and dropped
+# TODO: print how many rows were dropped
+
+
+# =====================================================================
+# Q2. Find and remove duplicates (5 min)
+# An item is identified by order_id + order_item_id TOGETHER.
+# =====================================================================
+def handle_duplicates(df):
+    key = ["order_id", "order_item_id"]
+    # TODO: print "Duplicate rows:" and every copy of each duplicate
+    # TODO: remove duplicates, keep the FIRST row
+    # TODO: print the cleaned table
+    # TODO: return (cleaned DataFrame, number of rows removed)
+    pass
+
+
+# TODO: call handle_duplicates with clean_df -> store the results as deduped and removed
+# TODO: print how many rows were removed
+
+
+# =====================================================================
+# Q3. Find suspicious items with a FOR loop and IF / ELIF / ELSE (5 min)
+# Strict comparisons (>): a value exactly equal is NOT suspicious.
+# =====================================================================
+def count_suspicious(df):
+    count = 0
+    # TODO: loop through each row of df
+    #   if   freight_value > price -> print "<order_id> item <order_item_id>: SUSPICIOUS - freight is higher than price", add 1
+    #   elif price > 1000          -> print "<order_id> item <order_item_id>: SUSPICIOUS - price is over 1000", add 1
+    #   else                       -> print "<order_id> item <order_item_id>: ok"
+    # TODO: return count
+    pass
+
+
+# TODO: call count_suspicious with deduped -> store the result as suspicious
+# TODO: print the number of suspicious items
+
+
+# =====================================================================
+# Q4. Build the rejected rows (5 min)
+# =====================================================================
+def build_rejected(raw_df, no_null_df):
+    key = ["order_id", "order_item_id"]
+    # TODO: rows with missing seller_id           -> reject_reason "missing seller_id"
+    # TODO: rows with seller_id but missing price -> reject_reason "missing price"
+    # TODO: extra copies of duplicates            -> reject_reason "duplicate"
+    # TODO: combine the three into one DataFrame (new index 0, 1, 2 ...), print and return it
+    pass
+
+
+# TODO: call build_rejected with items and clean_df -> store the result as rejected_df
+# TODO: print the number of rejected rows, good rows (deduped) and the total (must be 10)
+
+
+# =====================================================================
+# Q5. Create two tables and load (8 min)
+# The staging schema exists; these two tables do NOT exist yet.
+#
+# staging.order_items_clean
+#   order_id TEXT not null, order_item_id INTEGER not null, seller_id TEXT not null,
+#   price NUMERIC(10,2) not null, freight_value NUMERIC(10,2),
+#   loaded_at TIMESTAMP not null default now(),  PRIMARY KEY (order_id, order_item_id)
+#
+# staging.order_items_rejected
+#   order_id TEXT, order_item_id INTEGER, seller_id TEXT, price NUMERIC(10,2),
+#   freight_value NUMERIC(10,2), reject_reason TEXT not null,
+#   loaded_at TIMESTAMP not null default now()   (no primary key)
+# =====================================================================
+def load_items(good_df, rejected_df, engine):
+    create_sql = """
+    -- TODO: create staging.order_items_clean    (if it does not exist)
+    -- TODO: create staging.order_items_rejected (if it does not exist)
+    """
+    # TODO: with engine.begin() as conn:      (one transaction)
+    #   1. run create_sql
+    #   2. delete all rows from both tables
+    #   3. to_sql good_df -> staging.order_items_clean, rejected_df -> staging.order_items_rejected
+    #      (if_exists="append", index=False)
+    #   4. count the rows in each table
+    # TODO: print "Loaded X good items and Y rejected items" and return (X, Y)
+    pass
+
+
+def main():
+    # TODO: call load_items with deduped, rejected_df and engine
+    pass
+
+
+if __name__ == "__main__":
+    main()
+</script>
+<script>
+(function () {
+  const code = document.getElementById("skeleton").textContent.replace(/^\n/, "");
+  const view = document.getElementById("skeletonView");
+
+  // Light highlighting: comments (TODO in yellow), strings, a few keywords.
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  const re = /("""[\s\S]*?"""|#[^\n]*|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|\b(?:def|return|import|from|if|elif|else|for|in|with|as|pass|None|True|False)\b)/g;
+  let out = "", last = 0, m;
+  while ((m = re.exec(code)) !== null) {
+    out += esc(code.slice(last, m.index));
+    const t = m[0];
+    if (t.startsWith("#")) {
+      out += '<span class="tok-c">' + esc(t).replace(/TODO/g, '<span class="tok-todo">TODO</span>') + "</span>";
+    } else if (t.startsWith('"') || t.startsWith("'")) {
+      out += '<span class="tok-s">' + esc(t).replace(/TODO/g, '<span class="tok-todo">TODO</span>') + "</span>";
+    } else {
+      out += '<span class="tok-k">' + t + "</span>";
+    }
+    last = m.index + t.length;
+  }
+  out += esc(code.slice(last));
+  view.innerHTML = out;
+
+  const copyBtn = document.getElementById("copyBtn");
+  copyBtn.addEventListener("click", function () {
+    function done() { copyBtn.textContent = "Copied!"; setTimeout(function () { copyBtn.textContent = "Copy code"; }, 1500); }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(code).then(done, fallback);
+    } else { fallback(); }
+    function fallback() {
+      const ta = document.createElement("textarea");
+      ta.value = code; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); done(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+  });
+
+  document.getElementById("downloadBtn").addEventListener("click", function () {
+    const blob = new Blob([code], { type: "text/x-python" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "exam.py";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+})();
+</script>
+<script>
+(function () {
+  const QUESTIONS = ["q1", "q2", "q3", "q4", "q5"];
+  const nameInput = document.getElementById("studentName");
+  const KEY = "olist-exam:" + location.pathname + ":";
+
+  function load(k) { try { return localStorage.getItem(KEY + k) || ""; } catch (e) { return ""; } }
+  function store(k, v) { try { localStorage.setItem(KEY + k, v); } catch (e) {} }
+
+  nameInput.value = load("name");
+  nameInput.addEventListener("input", function () { store("name", nameInput.value); });
+
+  // Build a submit box at the end of each question
+  QUESTIONS.forEach(function (id) {
+    const q = id.toUpperCase();
+    const box = document.createElement("div");
+    box.className = "submitbox";
+    box.innerHTML =
+      '<h3>Submit your answer for ' + q + '</h3>' +
+      '<label for="' + id + '-code">Your code (the function and the lines that call it)</label>' +
+      '<textarea id="' + id + '-code" spellcheck="false" placeholder="Paste your ' + q + ' code here"></textarea>' +
+      '<label for="' + id + '-out">Your output (copy from the terminal)</label>' +
+      '<textarea id="' + id + '-out" class="out" spellcheck="false" placeholder="Paste what python scripts/exam.py printed"></textarea>' +
+      '<div class="submitrow"><button class="btn primary submitbtn" id="' + id + '-btn">Submit ' + q + '</button>' +
+      '<span class="status" id="' + id + '-status"></span></div>';
+    document.getElementById(id).appendChild(box);
+
+    const code = document.getElementById(id + "-code");
+    const out = document.getElementById(id + "-out");
+    const status = document.getElementById(id + "-status");
+    code.value = load(id + "-code");
+    out.value = load(id + "-out");
+    const last = load(id + "-sent");
+    if (last) setStatus(status, "ok", "Submitted at " + last);
+    code.addEventListener("input", function () { store(id + "-code", code.value); });
+    out.addEventListener("input", function () { store(id + "-out", out.value); });
+    // Tab key inserts 4 spaces instead of leaving the box
+    [code, out].forEach(function (ta) {
+      ta.addEventListener("keydown", function (e) {
+        if (e.key === "Tab") {
+          e.preventDefault();
+          const s = ta.selectionStart, en = ta.selectionEnd;
+          ta.value = ta.value.slice(0, s) + "    " + ta.value.slice(en);
+          ta.selectionStart = ta.selectionEnd = s + 4;
+          ta.dispatchEvent(new Event("input"));
+        }
+      });
+    });
+
+    document.getElementById(id + "-btn").addEventListener("click", function () {
+      if (!code.value.trim()) { setStatus(status, "err", "Paste your code first."); return; }
+      send({ question: q, code: code.value, output: out.value }, this, status, id);
+    });
+  });
+
+  // Final whole-file upload
+  const finalBtn = document.getElementById("finalBtn");
+  const finalStatus = document.getElementById("finalStatus");
+  const finalFile = document.getElementById("finalFile");
+  if (load("final-sent")) setStatus(finalStatus, "ok", "Submitted at " + load("final-sent"));
+  finalBtn.addEventListener("click", function () {
+    const f = finalFile.files && finalFile.files[0];
+    if (!f) { setStatus(finalStatus, "err", "Choose your exam.py first."); return; }
+    if (f.size > 200000) { setStatus(finalStatus, "err", "That file is too big. Choose scripts/exam.py."); return; }
+    const btn = this;
+    f.text().then(function (txt) {
+      send({ question: "FULL", code: txt, output: "", file_name: f.name }, btn, finalStatus, "final");
+    });
+  });
+
+  function setStatus(el, kind, msg) {
+    el.className = "status" + (kind ? " " + kind : "");
+    el.textContent = msg;
+  }
+
+  function closed() {
+    const end = window.__examEnd;
+    return end && Date.now() > end + CONFIG.GRACE_SEC * 1000;
+  }
+
+  function send(payload, btn, status, storeId) {
+    const name = nameInput.value.trim();
+    if (!name) {
+      setStatus(status, "err", "Enter your name at the top first.");
+      nameInput.focus();
+      nameInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (closed()) { setStatus(status, "err", "Submissions are closed."); return; }
+    if (!CONFIG.SUBMIT_URL) { setStatus(status, "err", "Submission is not set up yet. Tell your instructor."); return; }
+
+    payload.name = name;
+    payload.client_time = new Date().toISOString();
+    btn.disabled = true;
+    setStatus(status, "", "Sending...");
+
+    // text/plain body = simple request, so Apps Script accepts it without a CORS preflight
+    fetch(CONFIG.SUBMIT_URL, { method: "POST", body: JSON.stringify(payload) })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.ok) {
+          const t = res.received_at || new Date().toLocaleTimeString();
+          store(storeId + "-sent", t);
+          setStatus(status, "ok", "Submitted at " + t + (res.late ? " (late)" : ""));
+        } else {
+          setStatus(status, "err", res.error || "Could not submit. Try again.");
+        }
+      })
+      .catch(function () {
+        setStatus(status, "err", "Could not reach the server. Check your internet and try again.");
+      })
+      .finally(function () { btn.disabled = closed(); });
+  }
+
+  // Disable all submit buttons once the grace period is over
+  setInterval(function () {
+    const end = window.__examEnd;
+    if (!end) return;
+    const msg = document.getElementById("timesUpMsg");
+    const closeAt = end + CONFIG.GRACE_SEC * 1000;
+    if (Date.now() <= closeAt) {
+      if (Date.now() > end) {
+        const s = Math.ceil((closeAt - Date.now()) / 1000);
+        msg.textContent = "Submit what you have now. Submissions close in " +
+          Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0") + ".";
+      }
+    } else {
+      msg.textContent = "Submissions are closed.";
+      document.querySelectorAll(".submitbtn").forEach(function (b) { b.disabled = true; });
+    }
+  }, 500);
+})();
+</script>
+</body>
+</html>
