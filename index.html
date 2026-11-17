@@ -252,7 +252,7 @@
 <script>
   const CONFIG = {
     START: null,          // e.g. "2026-11-17T19:30:00+07:00", or null
-    DURATION_MIN: 30,     // exam length in minutes
+    DURATION_MIN: 40,     // exam length in minutes
     WARN_MIN: 5,          // bar turns amber with this many minutes left
     DANGER_MIN: 1,        // bar turns red with this many minutes left
     SUBMIT_URL: "https://script.google.com/macros/s/AKfycbxFCFDnc3e-jsbbMOoTxuFiYabwZfTD6Q8IlyT8RQScDaTPvAeoZMA9XZpZQdVXaljekQ/exec",       // Google Apps Script web app URL (ends in /exec)
@@ -274,7 +274,7 @@
   <h2 id="waitTitle">The exam has not started yet</h2>
   <p class="sub" id="waitSub"></p>
   <div class="big" id="waitClock">--:--</div>
-  <button id="startBtn" class="hidden">Start my 30 minutes</button>
+  <button id="startBtn" class="hidden">Start my 40 minutes</button>
 </div>
 
 <main id="exam" class="hidden">
@@ -285,7 +285,7 @@
   </div>
 
   <h1>Python Live Coding Exam: Clean and Load Olist Order Items</h1>
-  <p class="sub">5 questions · <span id="durText">30</span> minutes · file: <code>scripts/exam.py</code></p>
+  <p class="sub">5 questions · <span id="durText">40</span> minutes · file: <code>scripts/exam.py</code></p>
 
   <section class="card namecard">
     <label for="studentName"><strong>Your name</strong></label>
@@ -754,7 +754,7 @@ o8 item 1: SUSPICIOUS - freight is higher than price</pre>
 })();
 </script>
 <script type="text/plain" id="skeleton">"""
-Python live coding exam - Olist order_items                         (about 30 minutes)
+Python live coding exam - Olist order_items                         (about 40 minutes)
 
 Q1  Drop null values                       5 min
 Q2  Find and remove duplicates             5 min
